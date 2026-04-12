@@ -46,7 +46,7 @@ $retards = $retards->fetchAll();
 $derniers = $db->query("
     SELECT p.date_paiement, p.montant, p.mode_paiement,
            l.nom_complet, m.nom AS maison, c.numero AS chambre,
-           q.numero_quittance,
+           q.id AS quittance_id, q.numero_quittance, q.pdf_path,
            DATE_FORMAT(p.mois_concerne, '%M %Y') AS mois
     FROM paiements p
     JOIN locataires l  ON l.id = p.locataire_id
@@ -220,6 +220,10 @@ require_once __DIR__ . '/../includes/header.php';
                         <?= number_format($p['montant'], 0, ',', ' ') ?> FCFA
                     </p>
                     <p class="text-xs text-gray-400"><?= date('d/m/Y', strtotime($p['date_paiement'])) ?></p>
+                    <?php if (!empty($p['quittance_id']) && !empty($p['pdf_path'])): ?>
+                    <a href="<?= BASE_URL ?>/pages/quittances/download.php?id=<?= (int) $p['quittance_id'] ?>"
+                       class="text-xs text-primary hover:underline">PDF</a>
+                    <?php endif; ?>
                 </div>
             </li>
             <?php endforeach; ?>
