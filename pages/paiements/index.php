@@ -38,7 +38,7 @@ if (!empty($_GET['saved'])) {
 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-semibold text-gray-800">Paiements</h1>
-        <p class="text-sm text-gray-500 mt-1">Encaissement <strong class="text-gray-700">hors application</strong> : tu consignes ici le paiement déjà reçu (historique, retards, future quittance).</p>
+        <p class="text-sm text-gray-500 mt-1">Encaissement <strong class="text-gray-700">hors application</strong> : chaque saisie génère une <strong class="text-gray-700">quittance PDF</strong> (téléchargeable ci-dessous).</p>
     </div>
     <div class="flex flex-wrap gap-2">
         <a href="<?= BASE_URL ?>/pages/paiements/retards.php"
@@ -97,7 +97,15 @@ if (!empty($_GET['saved'])) {
                     <td class="px-5 py-3 text-gray-600 whitespace-nowrap"><?= date('d/m/Y', strtotime($p['date_paiement'])) ?></td>
                     <td class="px-5 py-3 text-gray-600"><?= htmlspecialchars(paiement_mode_label((string) $p['mode_paiement'])) ?></td>
                     <td class="px-5 py-3 text-gray-500 text-xs">
-                        <?= !empty($p['numero_quittance']) ? htmlspecialchars($p['numero_quittance']) : '—' ?>
+                        <?php if (!empty($p['quittance_id']) && !empty($p['pdf_path'])): ?>
+                        <span class="text-gray-800"><?= htmlspecialchars((string) $p['numero_quittance']) ?></span>
+                        <br><a href="<?= BASE_URL ?>/pages/quittances/download.php?id=<?= (int) $p['quittance_id'] ?>"
+                               class="text-primary hover:underline">PDF</a>
+                        <?php elseif (!empty($p['numero_quittance'])): ?>
+                        <?= htmlspecialchars((string) $p['numero_quittance']) ?>
+                        <?php else: ?>
+                        —
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
