@@ -80,20 +80,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            $ins = $db->prepare('
-                INSERT INTO paiements (locataire_id, montant, mois_concerne, date_paiement, mode_paiement, note)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ');
-            $ins->execute([
-                $locataire_id,
-                $montant,
-                $mois_concerne,
-                $date_paiement,
-                $mode_paiement,
-                $note !== '' ? $note : null,
-            ]);
-            header('Location: ' . BASE_URL . '/pages/paiements/index.php?saved=1');
-            exit;
+            require_once __DIR__ . '/../../includes/quittance_service.php';
+            try {
+                $db->beginTransaction();
+                $ins = $db->prepare('
+                    INSERT INTO paiements (locataire_id, montant, mois_concerne, date_paiement, mode_paiement, note)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ');
+                $ins->execute([
+                    $locataire_id,
+                    $montant,
+                    $mois_concerne,
+                    $date_paiement,
+                    $mode_paiement,
+                    $note !== '' ? $note : null,
+                ]);
+                $paiementId = (int) $db->lastInsertId();
+                quittance_creer_pour_paiement($db, $paiementId);
+                $db->commit();
+                header('Location: ' . BASE_URL . '/pages/paiements/index.php?saved=1');
+                exit;
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                $errors[] = 'Enregistrement impossible : ' . $e->getMessage();
+            }
         }
     }
 }

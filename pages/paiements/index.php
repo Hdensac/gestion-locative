@@ -10,7 +10,7 @@ $rows = $db->query("
     SELECT p.id, p.montant, p.mois_concerne, p.date_paiement, p.mode_paiement, p.note, p.created_at,
            l.id AS locataire_id, l.nom_complet,
            m.nom AS maison, c.numero AS chambre,
-           q.numero_quittance
+           q.id AS quittance_id, q.numero_quittance, q.pdf_path
     FROM paiements p
     JOIN locataires l ON l.id = p.locataire_id
     JOIN chambres c ON c.id = l.chambre_id
@@ -25,7 +25,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
 $flash = null;
 if (!empty($_GET['saved'])) {
-    $flash = ['ok', 'Paiement enregistré. La quittance PDF pourra être générée à l’étape suivante du projet.'];
+    $flash = ['ok', 'Paiement et quittance PDF enregistrés.'];
 }
 ?>
 

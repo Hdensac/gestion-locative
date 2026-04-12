@@ -1,0 +1,8 @@
+{
+    "name": "local/gestion-locative",
+    "description": "Gestion locative",
+    "require": {
+        "php": ">=8.1",
+        "setasign/fpdf": "^1.8"
+    }
+}

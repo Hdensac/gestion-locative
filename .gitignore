@@ -2,3 +2,15 @@ config/*.php
 *.env
 vendor/
 node_modules/
+.idea/
+.vscode/
+.DS_Store
+/.history
+/.history/**
+/.cache
+/.env
+/.env.*
+config/*.php
+*.env
+vendor/
+node_modules/

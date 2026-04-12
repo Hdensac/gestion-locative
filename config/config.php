@@ -37,3 +37,7 @@ define('WA_PHONE', '+22960000000'); // ton numéro admin
 define('BAILLEUR_NOM', 'Nom du Propriétaire');
 define('BAILLEUR_ADRESSE', 'Cotonou, Bénin');
 define('BAILLEUR_TEL', '+229 00 00 00 00');
+
+if (is_file(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
