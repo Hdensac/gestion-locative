@@ -5,6 +5,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: ' . BASE_URL . '/login.php');
+    header('Location: ' . (BASE_PATH ?: '/') . '/login.php');
     exit;
 }

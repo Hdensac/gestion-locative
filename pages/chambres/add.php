@@ -8,7 +8,7 @@ $db = Database::getInstance();
 
 $maisons = $db->query('SELECT id, nom FROM maisons ORDER BY nom')->fetchAll();
 if (empty($maisons)) {
-    header('Location: ' . BASE_URL . '/pages/maisons/add.php?need_maison=1');
+    header('Location: ' . (BASE_PATH ?: '/') . '/pages/maisons/add.php?need_maison=1');
     exit;
 }
 
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             $ins = $db->prepare("INSERT INTO chambres (maison_id, numero, statut) VALUES (?, ?, 'libre')");
             $ins->execute([$maison_id, $numero]);
-            header('Location: ' . BASE_URL . '/pages/chambres/index.php?maison_id=' . $maison_id . '&created=1');
+            header('Location: ' . (BASE_PATH ?: '/') . '/pages/chambres/index.php?maison_id=' . $maison_id . '&created=1');
             exit;
         }
     }
@@ -65,7 +65,7 @@ $sel_maison = (int) ($_POST['maison_id'] ?? ($pref_maison > 0 ? $pref_maison : 0
 
 <div class="max-w-2xl mx-auto">
     <div class="mb-6">
-        <a href="<?= BASE_URL ?>/pages/chambres/index.php<?= $pref_maison > 0 ? '?maison_id=' . $pref_maison : '' ?>"
+        <a href="<?= BASE_PATH ?>/pages/chambres/index.php<?= $pref_maison > 0 ? '?maison_id=' . $pref_maison : '' ?>"
            class="text-sm text-primary hover:underline">← Retour aux chambres</a>
         <h1 class="text-2xl font-semibold text-gray-800 mt-2">Ajouter une chambre</h1>
         <p class="text-sm text-gray-500 mt-1">Le statut (libre / occupée) est calculé automatiquement selon les locataires actifs.</p>
@@ -104,7 +104,7 @@ $sel_maison = (int) ($_POST['maison_id'] ?? ($pref_maison > 0 ? $pref_maison : 0
                 <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition">
                     Enregistrer
                 </button>
-                <a href="<?= BASE_URL ?>/pages/chambres/index.php<?= $pref_maison > 0 ? '?maison_id=' . $pref_maison : '' ?>"
+                     <a href="<?= BASE_PATH ?>/pages/chambres/index.php<?= $pref_maison > 0 ? '?maison_id=' . $pref_maison : '' ?>"
                    class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition">Annuler</a>
             </div>
         </form>

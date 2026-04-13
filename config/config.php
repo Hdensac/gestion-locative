@@ -12,14 +12,28 @@ if ($documentRoot !== '' && str_starts_with($projectRoot, $documentRoot)) {
 }
 
 $basePath = rtrim($basePath, '/');
-$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+// Détection du schéma : supporte les proxys qui envoient "X-Forwarded-Proto".
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$xfp = strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['HTTP_X_FORWARDED_SCHEME'] ?? '');
+$scheme = 'http';
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    $scheme = 'https';
+} elseif ($xfp === 'https' || (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on')) {
+    $scheme = 'https';
+}
 
+// BASE_URL maintenu pour compatibilité, mais privilégiez BASE_PATH pour les liens internes.
 define('BASE_URL', $scheme . '://' . $host . ($basePath ?: ''));
 
 // Dossier de stockage des quittances PDF
+// Normalise et expose le chemin de base (sans scheme/host) pour générer des liens relatifs.
+if ($basePath !== '' && ($basePath[0] ?? '') !== '/') {
+    $basePath = '/' . ltrim($basePath, '/');
+}
+define('BASE_PATH', $basePath ?: '');
+
 define('PDF_DIR', __DIR__ . '/../quittances/');
-define('PDF_URL', BASE_URL . '/quittances/');
+define('PDF_URL', BASE_PATH . '/quittances/');
 
 // SMTP (à configurer plus tard pour l'envoi de mails)
 define('SMTP_HOST', 'smtp.gmail.com');

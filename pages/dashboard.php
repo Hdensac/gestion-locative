@@ -67,7 +67,7 @@ require_once __DIR__ . '/../includes/header.php';
         <h1 class="text-2xl font-semibold text-gray-800">Tableau de bord</h1>
         <p class="text-sm text-gray-500 mt-0.5"><?= strftime('%B %Y') ?> — <?= date('d/m/Y') ?></p>
     </div>
-    <a href="<?= BASE_URL ?>/pages/paiements/add.php"
+    <a href="<?= BASE_PATH ?>/pages/paiements/add.php"
        class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -184,7 +184,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <p class="text-sm font-semibold text-red-600">
                         <?= number_format($r['loyer_mensuel'], 0, ',', ' ') ?> FCFA
                     </p>
-                    <a href="<?= BASE_URL ?>/pages/paiements/add.php?locataire=<?= (int) ($r['id'] ?? 0) ?>"
+                    <a href="<?= BASE_PATH ?>/pages/paiements/add.php?locataire=<?= (int) ($r['id'] ?? 0) ?>"
                        class="text-xs text-primary hover:underline">Enregistrer →</a>
                 </div>
             </li>
@@ -197,7 +197,7 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 class="text-sm font-semibold text-gray-700">Derniers paiements</h2>
-            <a href="<?= BASE_URL ?>/pages/paiements/index.php" class="text-xs text-primary hover:underline">Tout voir →</a>
+            <a href="<?= BASE_PATH ?>/pages/paiements/index.php" class="text-xs text-primary hover:underline">Tout voir →</a>
         </div>
 
         <?php if (empty($derniers)): ?>
