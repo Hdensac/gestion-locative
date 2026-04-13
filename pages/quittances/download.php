@@ -12,12 +12,13 @@ if ($id < 1) {
 
 require_once __DIR__ . '/../../config/database.php';
 $db = Database::getInstance();
+$quittancePathColumn = Database::quittancePathColumn();
 
-$st = $db->prepare('
-    SELECT q.pdf_path, q.numero_quittance
+$st = $db->prepare("
+    SELECT q.$quittancePathColumn AS pdf_path, q.numero_quittance
     FROM quittances q
-    WHERE q.id = ? AND q.pdf_path IS NOT NULL AND q.pdf_path != \'\'
-');
+    WHERE q.id = ? AND q.$quittancePathColumn IS NOT NULL AND q.$quittancePathColumn != ''
+");
 $st->execute([$id]);
 $row = $st->fetch(PDO::FETCH_ASSOC);
 if (!$row) {

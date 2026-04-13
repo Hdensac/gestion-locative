@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/auth.php';
 $db = Database::getInstance();
 require_once __DIR__ . '/../includes/sync_chambres.php';
 sync_chambre_statuts($db);
+$quittancePathColumn = Database::quittancePathColumn();
 
 // ── Stats globales ────────────────────────────────────────────
 $stats = $db->query("
@@ -46,7 +47,7 @@ $retards = $retards->fetchAll();
 $derniers = $db->query("
     SELECT p.date_paiement, p.montant, p.mode_paiement,
            l.nom_complet, m.nom AS maison, c.numero AS chambre,
-           q.id AS quittance_id, q.numero_quittance, q.pdf_path,
+           q.id AS quittance_id, q.numero_quittance, q.$quittancePathColumn AS pdf_path,
            DATE_FORMAT(p.mois_concerne, '%M %Y') AS mois
     FROM paiements p
     JOIN locataires l  ON l.id = p.locataire_id

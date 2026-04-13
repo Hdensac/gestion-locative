@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/QuittancePdf.php';
 require_once __DIR__ . '/paiement_modes.php';
+require_once __DIR__ . '/../config/database.php';
 
 /**
  * Crée la ligne quittance + fichier PDF pour un paiement existant.
@@ -98,11 +99,22 @@ function quittance_creer_pour_paiement(PDO $db, int $paiementId): int
         throw new RuntimeException('Échec de l’écriture du fichier PDF.');
     }
 
-    $ins = $db->prepare('
-        INSERT INTO quittances (paiement_id, numero_quittance, date_emission, pdf_path, envoye_mail, envoye_whatsapp)
-        VALUES (?, ?, ?, ?, 0, 0)
-    ');
-    $ins->execute([$paiementId, $numero, $dateEmission, $filename]);
+    $pathColumn = Database::quittancePathColumn();
+    $hasDateEmission = Database::quittanceHasDateEmission();
+
+    if ($hasDateEmission) {
+        $ins = $db->prepare("
+            INSERT INTO quittances (paiement_id, numero_quittance, date_emission, $pathColumn, envoye_mail, envoye_whatsapp)
+            VALUES (?, ?, ?, ?, 0, 0)
+        ");
+        $ins->execute([$paiementId, $numero, $dateEmission, $filename]);
+    } else {
+        $ins = $db->prepare("
+            INSERT INTO quittances (paiement_id, numero_quittance, $pathColumn, envoye_mail, envoye_whatsapp)
+            VALUES (?, ?, ?, 0, 0)
+        ");
+        $ins->execute([$paiementId, $numero, $filename]);
+    }
 
     return (int) $db->lastInsertId();
 }
