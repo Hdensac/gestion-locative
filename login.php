@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($user === ADMIN_USER && password_verify($pass, ADMIN_PASS)) {
         $_SESSION['admin_logged_in'] = true;
-        header('Location: ' . (BASE_PATH ?: '/') . '/pages/dashboard.php');
+        header('Location: ' . (BASE_PATH ?: '') . '/pages/dashboard.php');
         exit;
     }
     $error = 'Identifiants incorrects.';

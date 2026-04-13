@@ -9,7 +9,7 @@ class Database {
            // On récupère les noms exacts fournis par Railway
             $host   = getenv('MYSQLHOST') ?: 'localhost';
             $port   = getenv('MYSQLPORT') ?: '3306';
-            $dbname = getenv('MYSQL_DATABASE') ?: 'railway'; // Attention au "_"
+            $dbname = getenv('MYSQL_DATABASE') ?: 'gestion_locative'; // Attention au "_"
             $user   = getenv('MYSQLUSER') ?: 'root';
             $pass   = getenv('MYSQLPASSWORD') ?: '';
 

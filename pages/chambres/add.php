@@ -8,7 +8,7 @@ $db = Database::getInstance();
 
 $maisons = $db->query('SELECT id, nom FROM maisons ORDER BY nom')->fetchAll();
 if (empty($maisons)) {
-    header('Location: ' . (BASE_PATH ?: '/') . '/pages/maisons/add.php?need_maison=1');
+    header('Location: ' . (BASE_PATH ?: '') . '/pages/maisons/add.php?need_maison=1');
     exit;
 }
 
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             $ins = $db->prepare("INSERT INTO chambres (maison_id, numero, statut) VALUES (?, ?, 'libre')");
             $ins->execute([$maison_id, $numero]);
-            header('Location: ' . (BASE_PATH ?: '/') . '/pages/chambres/index.php?maison_id=' . $maison_id . '&created=1');
+            header('Location: ' . (BASE_PATH ?: '') . '/pages/chambres/index.php?maison_id=' . $maison_id . '&created=1');
             exit;
         }
     }

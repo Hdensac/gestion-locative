@@ -13,7 +13,22 @@ if ($documentRoot !== '' && str_starts_with($projectRoot, $documentRoot)) {
 
 $basePath = rtrim($basePath, '/');
 // Détection du schéma : supporte les proxys qui envoient "X-Forwarded-Proto".
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$rawHost = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+$host = preg_replace('/:\d+$/', '', $rawHost) ?: '';
+
+// Empêche les hôtes invalides (ex: "login.php") qui cassent les redirections absolues.
+if (
+    $host === ''
+    || (
+        $host !== 'localhost'
+        && !filter_var($host, FILTER_VALIDATE_IP)
+        && !preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i', $host)
+    )
+) {
+    $serverName = trim((string) ($_SERVER['SERVER_NAME'] ?? ''));
+    $host = $serverName !== '' ? $serverName : 'localhost';
+}
+
 $xfp = strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['HTTP_X_FORWARDED_SCHEME'] ?? '');
 $scheme = 'http';
 if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
@@ -22,15 +37,16 @@ if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
     $scheme = 'https';
 }
 
-// BASE_URL maintenu pour compatibilité, mais privilégiez BASE_PATH pour les liens internes.
-define('BASE_URL', $scheme . '://' . $host . ($basePath ?: ''));
-
 // Dossier de stockage des quittances PDF
 // Normalise et expose le chemin de base (sans scheme/host) pour générer des liens relatifs.
 if ($basePath !== '' && ($basePath[0] ?? '') !== '/') {
     $basePath = '/' . ltrim($basePath, '/');
 }
 define('BASE_PATH', $basePath ?: '');
+
+// Pour l'application interne, on force une base relative afin d'éviter
+// les redirections vers des domaines invalides (ex: //pages/...).
+define('BASE_URL', BASE_PATH);
 
 define('PDF_DIR', __DIR__ . '/../quittances/');
 define('PDF_URL', BASE_PATH . '/quittances/');
