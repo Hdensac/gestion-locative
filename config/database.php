@@ -4,15 +4,22 @@ class Database {
 
     public static function getInstance(): PDO {
         if (self::$instance === null) {
-            $host   = 'localhost';
-            $dbname = 'gestion_locative';
-            $user   = 'root';
-            $pass   = '';
+            // Sur Railway, on utilise getenv() pour récupérer les variables du serveur
+            // On garde les valeurs par défaut (localhost, root, etc.) pour ton Laragon local
+            $host   = getenv('DB_HOST') ?: 'localhost';
+            $port   = getenv('DB_PORT') ?: '3306';
+            $dbname = getenv('DB_NAME') ?: 'gestion_locative';
+            $user   = getenv('DB_USER') ?: 'root';
+            $pass   = getenv('DB_PASSWORD') ?: '';
 
             try {
+                // Ajout du port dans le DSN (important pour Railway)
+                $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+                
                 self::$instance = new PDO(
-                    "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
-                    $user, $pass,
+                    $dsn,
+                    $user, 
+                    $pass,
                     [
                         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -20,9 +27,9 @@ class Database {
                     ]
                 );
             } catch (PDOException $e) {
+                // Message d'erreur plus générique
                 die('<div style="font-family:sans-serif;padding:20px;color:red;">
-                    <strong>Erreur de connexion MySQL :</strong> ' . $e->getMessage() . '
-                    <br><small>Vérifie que Laragon est démarré et que la base <em>gestion_locative</em> existe.</small>
+                    <strong>Erreur de connexion à la base de données :</strong> ' . $e->getMessage() . '
                 </div>');
             }
         }
