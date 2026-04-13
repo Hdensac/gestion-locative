@@ -6,11 +6,12 @@ class Database {
         if (self::$instance === null) {
             // Sur Railway, on utilise getenv() pour récupérer les variables du serveur
             // On garde les valeurs par défaut (localhost, root, etc.) pour ton Laragon local
-            $host   = getenv('DB_HOST') ?: 'localhost';
-            $port   = getenv('DB_PORT') ?: '3306';
-            $dbname = getenv('DB_NAME') ?: 'gestion_locative';
-            $user   = getenv('DB_USER') ?: 'root';
-            $pass   = getenv('DB_PASSWORD') ?: '';
+           // On récupère les noms exacts fournis par Railway
+            $host   = getenv('MYSQLHOST') ?: 'localhost';
+            $port   = getenv('MYSQLPORT') ?: '3306';
+            $dbname = getenv('MYSQL_DATABASE') ?: 'gestion_locative'; // Attention au "_"
+            $user   = getenv('MYSQLUSER') ?: 'root';
+            $pass   = getenv('MYSQLPASSWORD') ?: '';
 
             try {
                 // Ajout du port dans le DSN (important pour Railway)
