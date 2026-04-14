@@ -9,7 +9,7 @@ class Database {
             // Supporte les variables Railway avec ou sans underscore.
             $host = getenv('MYSQLHOST') ?: 'localhost';
             $port = getenv('MYSQLPORT') ?: '3306';
-            $dbname = getenv('MYSQLDATABASE') ?: (getenv('MYSQL_DATABASE') ?: 'gestion_locative');
+            $dbname =(getenv('MYSQL_DATABASE') ?: 'gestion_locative');
             $user = getenv('MYSQLUSER') ?: 'root';
             $pass = getenv('MYSQLPASSWORD') ?: '';
 
