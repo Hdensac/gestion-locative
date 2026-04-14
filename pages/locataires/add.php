@@ -84,22 +84,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO locataires (chambre_id, nom_complet, telephone, email, loyer_mensuel, date_entree, actif)
                 VALUES (?, ?, ?, ?, ?, ?, 1)
             ');
-            $success = $ins->execute([
-                $chambre_id,
-                $nom_complet,
-                $telephone !== '' ? $telephone : null,
-                $email !== '' ? $email : null,
-                $loyer_mensuel,
-                $date_entree,
-            ]);
-            
-            if ($success) {
-                require_once __DIR__ . '/../../includes/sync_chambres.php';
-                sync_chambre_statuts($db);
-                header('Location: ' . BASE_URL . '/pages/locataires/index.php?created=1');
-                exit;
-            } else {
-                $errors[] = 'Erreur lors de l\'enregistrement du locataire. Veuillez réessayer.';
+            try {
+                $success = $ins->execute([
+                    $chambre_id,
+                    $nom_complet,
+                    $telephone !== '' ? $telephone : null,
+                    $email !== '' ? $email : null,
+                    $loyer_mensuel,
+                    $date_entree,
+                ]);
+                
+                if ($success && $ins->rowCount() > 0) {
+                    try {
+                        require_once __DIR__ . '/../../includes/sync_chambres.php';
+                        sync_chambre_statuts($db);
+                        header('Location: ' . BASE_URL . '/pages/locataires/index.php?created=1');
+                        exit;
+                    } catch (Exception $e) {
+                        $errors[] = 'Erreur lors de la synchronisation des chambres : ' . $e->getMessage();
+                    }
+                } else {
+                    $errors[] = 'Erreur lors de l\'enregistrement du locataire. Veuillez réessayer.';
+                }
+            } catch (PDOException $e) {
+                // Vérifier si c'est une erreur de clé étrangère
+                if ($e->getCode() === '23000') {
+                    $errorInfo = $e->errorInfo;
+                    if (isset($errorInfo[2]) && strpos($errorInfo[2], 'foreign key') !== false) {
+                        $errors[] = 'Erreur de clé étrangère : la chambre sélectionnée n\'existe peut-être plus ou a été supprimée.';
+                    } else {
+                        $errors[] = 'Erreur de contrainte : vérifiez que la chambre existe et n\'a pas déjà de locataire actif.';
+                    }
+                } else {
+                    $errors[] = 'Erreur technique lors de l\'enregistrement : ' . $e->getMessage();
+                }
             }
         }
     }
