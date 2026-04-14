@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
 $db = Database::getInstance();
+$paiementMonthColumn = Database::paiementMonthColumn();
 
 $mois_courant = date('Y-m-01');
 $moisFr = ['01' => 'janvier', '02' => 'février', '03' => 'mars', '04' => 'avril', '05' => 'mai', '06' => 'juin', '07' => 'juillet', '08' => 'août', '09' => 'septembre', '10' => 'octobre', '11' => 'novembre', '12' => 'décembre'];
@@ -17,7 +18,7 @@ $retards = $db->prepare("
     JOIN maisons  m ON m.id = c.maison_id
     WHERE l.actif = 1
       AND l.id NOT IN (
-          SELECT locataire_id FROM paiements WHERE mois_concerne = ?
+          SELECT locataire_id FROM paiements WHERE $paiementMonthColumn = ?
       )
     ORDER BY m.nom, c.numero
 ");

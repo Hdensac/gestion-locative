@@ -9,7 +9,7 @@ class Database {
             // Supporte les variables Railway avec ou sans underscore.
             $host = getenv('MYSQLHOST') ?: 'localhost';
             $port = getenv('MYSQLPORT') ?: '3306';
-            $dbname =(getenv('MYSQL_DATABASE') ?: 'gestion_locative');
+            $dbname = getenv('MYSQLDATABASE') ?: (getenv('MYSQL_DATABASE') ?: 'gestion_locative');
             $user = getenv('MYSQLUSER') ?: 'root';
             $pass = getenv('MYSQLPASSWORD') ?: '';
 
@@ -64,6 +64,26 @@ class Database {
         return self::tableHasColumn('quittances', 'date_emission');
     }
 
+    public static function paiementMonthColumn(): string {
+        if (self::tableHasColumn('paiements', 'mois_concerne')) {
+            return 'mois_concerne';
+        }
+
+        if (self::tableHasColumn('paiements', 'mois')) {
+            return 'mois';
+        }
+
+        $db = self::getInstance();
+        $currentDb = (string) ($db->query('SELECT DATABASE()')->fetchColumn() ?: '(inconnue)');
+        $currentDbSafe = htmlspecialchars($currentDb, ENT_QUOTES, 'UTF-8');
+        $hostSafe = htmlspecialchars((string) (getenv('MYSQLHOST') ?: 'localhost'), ENT_QUOTES, 'UTF-8');
+        die('<div style="font-family:system-ui,sans-serif;padding:20px;line-height:1.5;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;max-width:900px;margin:20px auto;">'
+            . '<h2 style="margin:0 0 10px 0;">Schéma paiements incompatible</h2>'
+            . '<p style="margin:0 0 8px 0;">La table <code>paiements</code> ne contient ni <code>mois_concerne</code> ni <code>mois</code>.</p>'
+            . '<p style="margin:0;">Connexion actuelle: host=<code>' . $hostSafe . '</code>, DATABASE()=<code>' . $currentDbSafe . '</code></p>'
+            . '</div>');
+    }
+
     private static function assertCoreSchema(PDO $db): void {
         $required = ['maisons', 'chambres', 'locataires', 'paiements', 'quittances'];
         $missing = [];
@@ -79,9 +99,14 @@ class Database {
         }
 
         $list = htmlspecialchars(implode(', ', $missing), ENT_QUOTES, 'UTF-8');
+        $currentDb = (string) ($db->query('SELECT DATABASE()')->fetchColumn() ?: '(inconnue)');
+        $currentDbSafe = htmlspecialchars($currentDb, ENT_QUOTES, 'UTF-8');
+        $hostSafe = htmlspecialchars((string) (getenv('MYSQLHOST') ?: 'localhost'), ENT_QUOTES, 'UTF-8');
+        $envDbSafe = htmlspecialchars((string) (getenv('MYSQLDATABASE') ?: (getenv('MYSQL_DATABASE') ?: 'gestion_locative')), ENT_QUOTES, 'UTF-8');
         die('<div style="font-family:system-ui,sans-serif;padding:20px;line-height:1.5;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;max-width:900px;margin:20px auto;">'
             . '<h2 style="margin:0 0 10px 0;">Base non initialisée</h2>'
             . '<p style="margin:0 0 8px 0;">Tables manquantes: <strong>' . $list . '</strong></p>'
+            . '<p style="margin:0 0 8px 0;">Connexion actuelle: host=<code>' . $hostSafe . '</code>, DATABASE()=<code>' . $currentDbSafe . '</code>, env_db=<code>' . $envDbSafe . '</code></p>'
             . '<p style="margin:0;">Importez le schéma SQL sur Railway (fichier <code>gestion_locative.sql</code> ou <code>gestion_locative.no_definer.sql</code>), puis redéployez.</p>'
             . '</div>');
     }

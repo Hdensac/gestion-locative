@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../includes/paiement_modes.php';
 
 $db = Database::getInstance();
 
+$paiementMonthColumn = Database::paiementMonthColumn();
+
 $locataires = $db->query("
     SELECT l.id, l.nom_complet, l.loyer_mensuel, m.nom AS maison, c.numero AS chambre
     FROM locataires l
@@ -72,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            $dup = $db->prepare('SELECT id FROM paiements WHERE locataire_id = ? AND mois_concerne = ?');
+            $dup = $db->prepare("SELECT id FROM paiements WHERE locataire_id = ? AND $paiementMonthColumn = ?");
             $dup->execute([$locataire_id, $mois_concerne]);
             if ($dup->fetch()) {
                 $errors[] = 'Un paiement existe déjà pour ce locataire et ce mois.';
@@ -83,10 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../../includes/quittance_service.php';
             try {
                 $db->beginTransaction();
-                $ins = $db->prepare('
-                    INSERT INTO paiements (locataire_id, montant, mois_concerne, date_paiement, mode_paiement, note)
+                $ins = $db->prepare("
+                    INSERT INTO paiements (locataire_id, montant, $paiementMonthColumn, date_paiement, mode_paiement, note)
                     VALUES (?, ?, ?, ?, ?, ?)
-                ');
+                ");
                 $ins->execute([
                     $locataire_id,
                     $montant,
@@ -220,3 +222,5 @@ require_once __DIR__ . '/../../includes/header.php';
 </div>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
+
+

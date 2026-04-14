@@ -6,9 +6,10 @@ require_once __DIR__ . '/../../includes/paiement_modes.php';
 
 $db = Database::getInstance();
 $quittancePathColumn = Database::quittancePathColumn();
+$paiementMonthColumn = Database::paiementMonthColumn();
 
 $rows = $db->query("
-    SELECT p.id, p.montant, p.mois_concerne, p.date_paiement, p.mode_paiement, p.note, p.created_at,
+    SELECT p.id, p.montant, p.$paiementMonthColumn AS mois_concerne, p.date_paiement, p.mode_paiement, p.note, p.created_at,
            l.id AS locataire_id, l.nom_complet,
            m.nom AS maison, c.numero AS chambre,
            q.id AS quittance_id, q.numero_quittance, q.$quittancePathColumn AS pdf_path

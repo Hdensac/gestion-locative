@@ -1,7 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -10,6 +7,7 @@ $db = Database::getInstance();
 require_once __DIR__ . '/../includes/sync_chambres.php';
 sync_chambre_statuts($db);
 $quittancePathColumn = Database::quittancePathColumn();
+$paiementMonthColumn = Database::paiementMonthColumn();
 
 // ── Stats globales ────────────────────────────────────────────
 $stats = $db->query("
@@ -25,7 +23,7 @@ $stats = $db->query("
 // ── Paiements du mois courant ─────────────────────────────────
 $mois_courant = date('Y-m-01');
 $nb_payes = $db->prepare("
-    SELECT COUNT(*) FROM paiements WHERE mois_concerne = ?
+    SELECT COUNT(*) FROM paiements WHERE $paiementMonthColumn = ?
 ");
 $nb_payes->execute([$mois_courant]);
 $nb_payes = (int) $nb_payes->fetchColumn();
@@ -39,7 +37,7 @@ $retards = $db->prepare("
     JOIN maisons  m ON m.id = c.maison_id
     WHERE l.actif = 1
       AND l.id NOT IN (
-          SELECT locataire_id FROM paiements WHERE mois_concerne = ?
+          SELECT locataire_id FROM paiements WHERE $paiementMonthColumn = ?
       )
     ORDER BY m.nom, c.numero
 ");
@@ -51,7 +49,7 @@ $derniers = $db->query("
     SELECT p.date_paiement, p.montant, p.mode_paiement,
            l.nom_complet, m.nom AS maison, c.numero AS chambre,
            q.id AS quittance_id, q.numero_quittance, q.$quittancePathColumn AS pdf_path,
-           DATE_FORMAT(p.mois_concerne, '%M %Y') AS mois
+           DATE_FORMAT(p.$paiementMonthColumn, '%M %Y') AS mois
     FROM paiements p
     JOIN locataires l  ON l.id = p.locataire_id
     JOIN chambres c    ON c.id = l.chambre_id
