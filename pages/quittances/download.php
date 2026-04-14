@@ -26,10 +26,16 @@ if (!$row) {
     exit('Fichier non disponible.');
 }
 
+// Vérification que le répertoire PDF_DIR existe
+if (!is_dir(PDF_DIR)) {
+    http_response_code(500);
+    exit('Répertoire de quittances non configuré ou inaccessible.');
+}
+
 $base = realpath(PDF_DIR);
 if ($base === false) {
     http_response_code(500);
-    exit('Configuration PDF incorrecte.');
+    exit('Erreur de configuration : impossible d\'accéder au répertoire de quittances.');
 }
 
 $basename = basename((string) $row['pdf_path']);
@@ -41,10 +47,43 @@ if ($basename === '' || str_contains($basename, '..')) {
 $full = realpath($base . DIRECTORY_SEPARATOR . $basename);
 if ($full === false || !str_starts_with($full, $base) || !is_file($full)) {
     http_response_code(404);
-    exit('Fichier absent sur le serveur.');
+    exit('Fichier absent sur le serveur ou chemin invalide.');
 }
 
-$filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', (string) $row['numero_quittance']) . '.pdf';
+// Vérification de la taille du fichier pour éviter les timeouts
+$fileSize = filesize($full);
+if ($fileSize === false) {
+    http_response_code(500);
+    exit('Erreur lors de la lecture du fichier.');
+}
+
+// Limite de taille pour éviter les timeouts (10MB)
+if ($fileSize > 10 * 1024 * 1024) {
+    http_response_code(413);
+    exit('Fichier trop volumineux pour le téléchargement.');
+}
+
+// Récupérer les informations du locataire pour un nom de fichier plus logique
+$locataireInfo = $db->prepare("
+    SELECT l.nom_complet, q.mois, q.annee
+    FROM quittances q
+    JOIN locataires l ON l.id = q.locataire_id
+    WHERE q.id = ?
+");
+$locataireInfo->execute([$id]);
+$locataire = $locataireInfo->fetch(PDO::FETCH_ASSOC);
+
+if ($locataire) {
+    // Générer un nom de fichier plus logique : nom_locataire_mois_annee.pdf
+    $nomPropre = preg_replace('/[^a-zA-Z0-9]/', '_', (string) $locataire['nom_complet']);
+    $mois = (int) $locataire['mois'];
+    $annee = (int) $locataire['annee'];
+    $moisNom = date('F', mktime(0, 0, 0, $mois, 1));
+    $filename = $nomPropre . '_' . $moisNom . '_' . $annee . '.pdf';
+} else {
+    // Fallback au numéro de quittance si on ne trouve pas le locataire
+    $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', (string) $row['numero_quittance']) . '.pdf';
+}
 
 header('Content-Type: application/pdf');
 header('Content-Disposition: inline; filename="' . $filename . '"');
