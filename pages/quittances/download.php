@@ -26,16 +26,12 @@ if (!$row) {
     exit('Fichier non disponible.');
 }
 
-// Vérification que le répertoire PDF_DIR existe
-if (!is_dir(PDF_DIR)) {
-    http_response_code(500);
-    exit('Répertoire de quittances non configuré ou inaccessible.');
-}
-
+// PDF_DIR est défini dans config.php comme __DIR__ . '/../quittances/'
+// Utilisons directement PDF_DIR qui est déjà un chemin absolu ou relatif fiable
 $base = realpath(PDF_DIR);
 if ($base === false) {
     http_response_code(500);
-    exit('Erreur de configuration : impossible d\'accéder au répertoire de quittances.');
+    exit('Erreur de configuration : répertoire de quittances introuvable : ' . PDF_DIR);
 }
 
 $basename = basename((string) $row['pdf_path']);
@@ -44,10 +40,10 @@ if ($basename === '' || str_contains($basename, '..')) {
     exit('Nom de fichier invalide.');
 }
 
-$full = realpath($base . DIRECTORY_SEPARATOR . $basename);
-if ($full === false || !str_starts_with($full, $base) || !is_file($full)) {
+$full = $base . DIRECTORY_SEPARATOR . $basename;
+if (!is_file($full)) {
     http_response_code(404);
-    exit('Fichier absent sur le serveur ou chemin invalide.');
+    exit('Fichier absent sur le serveur (' . htmlspecialchars($full) . ').');
 }
 
 // Vérification de la taille du fichier pour éviter les timeouts
