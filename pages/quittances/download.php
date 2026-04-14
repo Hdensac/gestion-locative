@@ -64,8 +64,9 @@ if ($fileSize > 10 * 1024 * 1024) {
 }
 
 // Récupérer les informations du locataire pour un nom de fichier plus logique
+$paiementMonthColumn = Database::paiementMonthColumn();
 $locataireInfo = $db->prepare("
-    SELECT l.nom_complet, p.mois_concerne
+    SELECT l.nom_complet, p.$paiementMonthColumn AS mois_concerne
     FROM quittances q
     JOIN paiements p ON p.id = q.paiement_id
     JOIN locataires l ON l.id = p.locataire_id
@@ -79,8 +80,8 @@ if ($locataire) {
     $nomPropre = preg_replace('/[^a-zA-Z0-9]/', '_', (string) $locataire['nom_complet']);
     // Extraire le mois et l'année de la colonne mois_concerne (format YYYY-MM-DD ou YYYY-MM)
     $dateParts = explode('-', (string) $locataire['mois_concerne']);
-    $annee = isset($dateParts[0]) ? (int)$dateParts[0] : date('Y');
-    $mois = isset($dateParts[1]) ? (int)$dateParts[1] : date('m');
+    $annee = isset($dateParts[0]) ? (int)$dateParts[0] : (int)date('Y');
+    $mois = isset($dateParts[1]) ? (int)$dateParts[1] : (int)date('m');
     $moisNom = date('F', mktime(0, 0, 0, $mois, 1));
     $filename = $nomPropre . '_' . $moisNom . '_' . $annee . '.pdf';
 } else {
