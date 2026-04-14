@@ -22,11 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            // adresse souvent NOT NULL en base existante : chaîne vide plutôt que NULL
-            $st = $db->prepare('INSERT INTO maisons (nom, adresse, description) VALUES (?,?,?)');
-            $st->execute([$nom, $adresse, $description !== '' ? $description : null]);
-            header('Location: ' . BASE_URL . '/pages/maisons/index.php?created=1');
-            exit;
+            try {
+                // adresse souvent NOT NULL en base existante : chaîne vide plutôt que NULL
+                $st = $db->prepare('INSERT INTO maisons (nom, adresse, description) VALUES (?,?,?)');
+                $st->execute([$nom, $adresse, $description !== '' ? $description : null]);
+                header('Location: ' . BASE_URL . '/pages/maisons/index.php?created=1');
+                exit;
+            } catch (\PDOException $e) {
+                $errors[] = 'Erreur SQL : ' . $e->getMessage();
+            }
         }
     }
 }
