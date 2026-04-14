@@ -10,6 +10,11 @@ require_once __DIR__ . '/../config/database.php';
  *
  * @throws RuntimeException en cas d’échec (rollback transaction appelant recommandé)
  */
+/**
+ * Crée la ligne quittance + fichier PDF pour un paiement existant.
+ *
+ * @throws RuntimeException en cas d’échec (rollback transaction appelant recommandé)
+ */
 function quittance_creer_pour_paiement(PDO $db, int $paiementId): int
 {
     if (!class_exists('FPDF')) {
@@ -54,6 +59,72 @@ function quittance_creer_pour_paiement(PDO $db, int $paiementId): int
 
     $dateEmission = date('Y-m-d');
     $filename = $numero . '.pdf';
+    
+    // Générer le fichier physique
+    _quittance_generer_pdf_physique($row, $numero, $dateEmission, $filename);
+
+    $pathColumn = Database::quittancePathColumn();
+    $hasDateEmission = Database::quittanceHasDateEmission();
+
+    if ($hasDateEmission) {
+        $ins = $db->prepare("
+            INSERT INTO quittances (paiement_id, numero_quittance, date_emission, $pathColumn, envoye_mail, envoye_whatsapp)
+            VALUES (?, ?, ?, ?, 0, 0)
+        ");
+        $ins->execute([$paiementId, $numero, $dateEmission, $filename]);
+    } else {
+        $ins = $db->prepare("
+            INSERT INTO quittances (paiement_id, numero_quittance, $pathColumn, envoye_mail, envoye_whatsapp)
+            VALUES (?, ?, ?, 0, 0)
+        ");
+        $ins->execute([$paiementId, $numero, $filename]);
+    }
+
+    return (int) $db->lastInsertId();
+}
+
+/**
+ * Régénère le PDF d'une quittance existante si le fichier est absent.
+ */
+function quittance_regenerer_pdf(PDO $db, int $quittanceId): bool
+{
+    $pathColumn = Database::quittancePathColumn();
+    $hasDateEmission = Database::quittanceHasDateEmission();
+    
+    $st = $db->prepare("
+        SELECT q.numero_quittance, q." . ($hasDateEmission ? 'date_emission' : 'created_at') . " AS date_emission, q.$pathColumn as pdf_path,
+               p.montant, p.mois_concerne, p.date_paiement, p.mode_paiement, p.note,
+               l.nom_complet AS loc_nom, l.telephone AS loc_tel, l.email AS loc_email,
+               c.numero AS chambre_num, m.nom AS maison_nom, m.adresse AS maison_adresse
+        FROM quittances q
+        JOIN paiements p ON p.id = q.paiement_id
+        JOIN locataires l ON l.id = p.locataire_id
+        JOIN chambres c ON c.id = l.chambre_id
+        JOIN maisons m ON m.id = c.maison_id
+        WHERE q.id = ?
+    ");
+    $st->execute([$quittanceId]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$row) return false;
+    
+    $numero = $row['numero_quittance'];
+    $dateEmission = $row['date_emission'] ?? date('Y-m-d');
+    $filename = $row['pdf_path'] ?: ($numero . '.pdf');
+    
+    try {
+        _quittance_generer_pdf_physique($row, $numero, $dateEmission, $filename);
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Fonction interne pour générer le fichier PDF.
+ */
+function _quittance_generer_pdf_physique(array $row, string $numero, string $dateEmission, string $filename): void
+{
     $absPath = rtrim(PDF_DIR, DIRECTORY_SEPARATOR . '/') . DIRECTORY_SEPARATOR . $filename;
 
     if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
@@ -90,6 +161,10 @@ function quittance_creer_pour_paiement(PDO $db, int $paiementId): int
         'note'               => (string) ($row['note'] ?? ''),
     ];
 
+    if (!class_exists('QuittancePdf')) {
+        require_once __DIR__ . '/QuittancePdf.php';
+    }
+
     $pdf = new QuittancePdf();
     $pdf->SetTitle('Quittance ' . $numero);
     $pdf->build($data);
@@ -98,23 +173,5 @@ function quittance_creer_pour_paiement(PDO $db, int $paiementId): int
     if (!is_file($absPath) || filesize($absPath) < 100) {
         throw new RuntimeException('Échec de l’écriture du fichier PDF.');
     }
-
-    $pathColumn = Database::quittancePathColumn();
-    $hasDateEmission = Database::quittanceHasDateEmission();
-
-    if ($hasDateEmission) {
-        $ins = $db->prepare("
-            INSERT INTO quittances (paiement_id, numero_quittance, date_emission, $pathColumn, envoye_mail, envoye_whatsapp)
-            VALUES (?, ?, ?, ?, 0, 0)
-        ");
-        $ins->execute([$paiementId, $numero, $dateEmission, $filename]);
-    } else {
-        $ins = $db->prepare("
-            INSERT INTO quittances (paiement_id, numero_quittance, $pathColumn, envoye_mail, envoye_whatsapp)
-            VALUES (?, ?, ?, 0, 0)
-        ");
-        $ins->execute([$paiementId, $numero, $filename]);
-    }
-
-    return (int) $db->lastInsertId();
 }
+

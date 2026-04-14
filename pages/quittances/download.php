@@ -42,9 +42,27 @@ if ($basename === '' || str_contains($basename, '..')) {
 
 $full = $base . DIRECTORY_SEPARATOR . $basename;
 if (!is_file($full)) {
-    http_response_code(404);
-    exit('Fichier absent sur le serveur (' . htmlspecialchars($full) . ').');
+    // Tenter de régénérer le fichier s'il est absent
+    require_once __DIR__ . '/../../includes/quittance_service.php';
+    try {
+        if (quittance_regenerer_pdf($db, $id)) {
+            // Re-vérifier après régénération
+            if (is_file($full)) {
+                // Succès de la régénération
+            } else {
+                http_response_code(404);
+                exit('Fichier absent sur le serveur et la régénération a échoué (' . htmlspecialchars($full) . ').');
+            }
+        } else {
+            http_response_code(404);
+            exit('Fichier absent sur le serveur et impossible de le régénérer (' . htmlspecialchars($full) . ').');
+        }
+    } catch (Exception $e) {
+        http_response_code(404);
+        exit('Fichier absent sur le serveur et erreur lors de la régénération : ' . htmlspecialchars($e->getMessage()));
+    }
 }
+
 
 // Vérification de la taille du fichier pour éviter les timeouts
 $fileSize = filesize($full);
@@ -60,9 +78,9 @@ if ($fileSize > 10 * 1024 * 1024) {
 }
 
 // Récupérer les informations du locataire pour un nom de fichier plus logique
-$paiementMonthColumn = Database::paiementMonthColumn();
+$monthCol = Database::paiementMonthColumn();
 $locataireInfo = $db->prepare("
-    SELECT l.nom_complet, p.$paiementMonthColumn AS mois_concerne
+    SELECT l.nom_complet, p.$monthCol AS date_concerne
     FROM quittances q
     JOIN paiements p ON p.id = q.paiement_id
     JOIN locataires l ON l.id = p.locataire_id
@@ -74,16 +92,25 @@ $locataire = $locataireInfo->fetch(PDO::FETCH_ASSOC);
 if ($locataire) {
     // Générer un nom de fichier plus logique : nom_locataire_mois_annee.pdf
     $nomPropre = preg_replace('/[^a-zA-Z0-9]/', '_', (string) $locataire['nom_complet']);
-    // Extraire le mois et l'année de la colonne mois_concerne (format YYYY-MM-DD ou YYYY-MM)
-    $dateParts = explode('-', (string) $locataire['mois_concerne']);
-    $annee = isset($dateParts[0]) ? (int)$dateParts[0] : (int)date('Y');
-    $mois = isset($dateParts[1]) ? (int)$dateParts[1] : (int)date('m');
+    
+    // Extraction du mois et de l'année depuis date_concerne
+    $dateVal = (string)$locataire['date_concerne'];
+    $ts = strtotime($dateVal);
+    if ($ts === false) {
+        $mois = (int)date('m');
+        $annee = (int)date('Y');
+    } else {
+        $mois = (int)date('m', $ts);
+        $annee = (int)date('Y', $ts);
+    }
+
     $moisNom = date('F', mktime(0, 0, 0, $mois, 1));
     $filename = $nomPropre . '_' . $moisNom . '_' . $annee . '.pdf';
 } else {
     // Fallback au numéro de quittance si on ne trouve pas le locataire
     $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', (string) $row['numero_quittance']) . '.pdf';
 }
+
 
 header('Content-Type: application/pdf');
 header('Content-Disposition: inline; filename="' . $filename . '"');
