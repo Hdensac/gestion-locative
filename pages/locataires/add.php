@@ -80,11 +80,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            $ins = $db->prepare('
-                INSERT INTO locataires (chambre_id, nom_complet, telephone, email, loyer_mensuel, date_entree, actif)
-                VALUES (?, ?, ?, ?, ?, ?, 1)
-            ');
+            // Utilisation d'une transaction pour garantir l'atomicité
+            $db->beginTransaction();
             try {
+                // Vérification finale dans la transaction pour éviter les problèmes de concurrence
+                $check_final = $db->prepare('
+                    SELECT c.id, c.statut 
+                    FROM chambres c 
+                    WHERE c.id = ? AND NOT EXISTS (
+                        SELECT 1 FROM locataires l WHERE l.chambre_id = c.id AND l.actif = 1
+                    )
+                ');
+                $check_final->execute([$chambre_id]);
+                $chambre_dispo = $check_final->fetch();
+                
+                if (!$chambre_dispo) {
+                    throw new Exception('La chambre sélectionnée n\'est plus disponible ou a déjà un locataire actif.');
+                }
+                
+                // Insertion du locataire
+                $ins = $db->prepare('
+                    INSERT INTO locataires (chambre_id, nom_complet, telephone, email, loyer_mensuel, date_entree, actif)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                ');
                 $success = $ins->execute([
                     $chambre_id,
                     $nom_complet,
@@ -94,30 +112,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $date_entree,
                 ]);
                 
-                if ($success && $ins->rowCount() > 0) {
-                    try {
-                        require_once __DIR__ . '/../../includes/sync_chambres.php';
-                        sync_chambre_statuts($db);
-                        header('Location: ' . BASE_URL . '/pages/locataires/index.php?created=1');
-                        exit;
-                    } catch (Exception $e) {
-                        $errors[] = 'Erreur lors de la synchronisation des chambres : ' . $e->getMessage();
-                    }
-                } else {
-                    $errors[] = 'Erreur lors de l\'enregistrement du locataire. Veuillez réessayer.';
+                if (!$success || $ins->rowCount() === 0) {
+                    throw new Exception('Échec de l\'insertion du locataire.');
                 }
-            } catch (PDOException $e) {
-                // Vérifier si c'est une erreur de clé étrangère
-                if ($e->getCode() === '23000') {
-                    $errorInfo = $e->errorInfo;
-                    if (isset($errorInfo[2]) && strpos($errorInfo[2], 'foreign key') !== false) {
-                        $errors[] = 'Erreur de clé étrangère : la chambre sélectionnée n\'existe peut-être plus ou a été supprimée.';
-                    } else {
-                        $errors[] = 'Erreur de contrainte : vérifiez que la chambre existe et n\'a pas déjà de locataire actif.';
-                    }
-                } else {
-                    $errors[] = 'Erreur technique lors de l\'enregistrement : ' . $e->getMessage();
-                }
+                
+                // Synchronisation des statuts de chambres
+                require_once __DIR__ . '/../../includes/sync_chambres.php';
+                sync_chambre_statuts($db);
+                
+                $db->commit();
+                
+                header('Location: ' . BASE_URL . '/pages/locataires/index.php?created=1');
+                exit;
+                
+            } catch (Exception $e) {
+                $db->rollBack();
+                $errors[] = 'Erreur lors de l\'enregistrement : ' . $e->getMessage();
             }
         }
     }
