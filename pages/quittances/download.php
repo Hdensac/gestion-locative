@@ -127,8 +127,16 @@ if ($locataire) {
 }
 
 
+// On vide tout buffer de sortie précédent pour éviter les caractères parasites (espaces, BOM, etc.)
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
+
 header('Content-Type: application/pdf');
 header('Content-Disposition: inline; filename="' . $filename . '"');
 header('Content-Length: ' . (string) filesize($full));
+header('Cache-Control: private, max-age=0, must-revalidate');
+header('Pragma: public');
+
 readfile($full);
 exit;
