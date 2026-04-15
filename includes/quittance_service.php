@@ -127,8 +127,12 @@ function _quittance_generer_pdf_physique(array $row, string $numero, string $dat
 {
     $absPath = rtrim(PDF_DIR, DIRECTORY_SEPARATOR . '/') . DIRECTORY_SEPARATOR . $filename;
 
+    if (!is_dir(PDF_DIR)) {
+        @mkdir(PDF_DIR, 0777, true);
+    }
+
     if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
-        throw new RuntimeException('Dossier quittances non accessible en écriture.');
+        throw new RuntimeException('Dossier quittances non accessible en écriture : ' . PDF_DIR);
     }
 
     $moisTs = strtotime($row['mois_concerne'] . ' 12:00:00');
@@ -161,6 +165,16 @@ function _quittance_generer_pdf_physique(array $row, string $numero, string $dat
         'note'               => (string) ($row['note'] ?? ''),
     ];
 
+    // Sécurité au cas où l'autoload ne fonctionne pas sur le serveur (ex: missing vendor)
+    if (!class_exists('FPDF')) {
+        $fpdfPath = __DIR__ . '/../vendor/setasign/fpdf/fpdf.php';
+        if (is_file($fpdfPath)) {
+            require_once $fpdfPath;
+        } else {
+            throw new RuntimeException('Librairie FPDF introuvable. Avez-vous exécuté "composer install" ?');
+        }
+    }
+
     if (!class_exists('QuittancePdf')) {
         require_once __DIR__ . '/QuittancePdf.php';
     }
@@ -171,7 +185,8 @@ function _quittance_generer_pdf_physique(array $row, string $numero, string $dat
     $pdf->Output('F', $absPath);
 
     if (!is_file($absPath) || filesize($absPath) < 100) {
-        throw new RuntimeException('Échec de l’écriture du fichier PDF.');
+        throw new RuntimeException('Échec de l’écriture du fichier PDF dans : ' . $absPath);
     }
 }
+
 

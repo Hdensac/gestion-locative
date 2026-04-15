@@ -4,6 +4,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
+// Debugging for Railway 502/500 errors
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+}
+
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($id < 1) {
     http_response_code(404);
@@ -26,12 +33,20 @@ if (!$row) {
     exit('Fichier non disponible.');
 }
 
+// Assurer que le dossier existe
+if (!is_dir(PDF_DIR)) {
+    @mkdir(PDF_DIR, 0777, true);
+}
+
 // PDF_DIR est défini dans config.php comme __DIR__ . '/../quittances/'
-// Utilisons directement PDF_DIR qui est déjà un chemin absolu ou relatif fiable
 $base = realpath(PDF_DIR);
 if ($base === false) {
-    http_response_code(500);
-    exit('Erreur de configuration : répertoire de quittances introuvable : ' . PDF_DIR);
+    // Si realpath échoue (dossier absent), on essaie avec PDF_DIR directement
+    $base = rtrim(PDF_DIR, DIRECTORY_SEPARATOR . '/');
+    if (!is_dir($base)) {
+        http_response_code(500);
+        exit('Erreur de configuration : répertoire de quittances introuvable ou inaccessible : ' . PDF_DIR);
+    }
 }
 
 $basename = basename((string) $row['pdf_path']);
